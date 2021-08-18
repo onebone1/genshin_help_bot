@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/joho/godotenv"
 
 	"genshin/bot_func"
 )
@@ -26,11 +30,18 @@ type User struct {
 	State        float64
 }
 
-var Accs Users
+var (
+	Accs  Users
+	devID int
+)
 
-const my_info = 1
-const change_info = 2
-const gift = 3
+const (
+	my_info     = 1
+	change_info = 2
+	gift        = 3
+	devsignin   = 4
+	devstate    = 5
+)
 
 func Instruction(text string) int {
 	if text == "/my_info" || text == "/my_info"+bot_func.Bot_info.Username {
@@ -39,6 +50,10 @@ func Instruction(text string) int {
 		return change_info
 	} else if text == "/gift" || text == "/gift"+bot_func.Bot_info.Username {
 		return gift
+	} else if text == "/devsignin" {
+		return devsignin
+	} else if text == "/devstate" {
+		return devstate
 	}
 	return 0
 }
@@ -59,20 +74,33 @@ func (users *Users) Init() {
 	for i := 0; i < len(users.Users); i += 1 {
 		fmt.Println(users.Users[i])
 	}
+	_ = godotenv.Load()
+	devID, _ = strconv.Atoi(os.Getenv("UserID"))
 }
 
-func (users *Users)Gift(text string) {
+func (users *Users) Gift(text string, user *tgbotapi.User) {
 	texts := strings.Split(text, "\n")
 	for i := range texts {
+		if i != 0 {
+			time.Sleep(5 * time.Second)
+		}
 		for j := range users.Users {
 			users.Users[j].Gift(texts[i])
 		}
 	}
+	str := "使用者 " + user.FirstName + " 已經幫您兌換以下兌換碼\n" + text
+	users.BroadCast(str)
 }
 
-func (users *Users)Signin() {
+func (users *Users) Signin() {
 	for i := range users.Users {
-		users.Users[i].Signin()
+		_ = users.Users[i].Signin()
+	}
+}
+
+func (users *Users) BroadCast(text string) {
+	for i := range users.Users {
+		bot_func.TGBot.SendMessage(int64(users.Users[i].ID), text)
 	}
 }
 
@@ -94,6 +122,7 @@ func (user *User) Update(text string) float64 {
 		"accountd_id: " + user.Account_id + "\n" +
 		"cookie_token: " + user.Cookie_token
 	bot_func.TGBot.SendMessage(int64(user.ID), str)
+	user.Signin()
 	Save()
 	return 1.0
 }
@@ -134,7 +163,7 @@ func (user *User) Gift(text string) {
 	bot_func.TGBot.SendMessage(int64(user.ID), string(body))
 }
 
-func (user *User)Signin() {
+func (user *User) Signin() string {
 	URL := "https://hk4e-api-os.mihoyo.com/event/sol/sign?lang=zh-tw"
 	data := strings.NewReader(`{"act_id":"e202102251931481"}`)
 	req, err := http.NewRequest("POST", URL, data)
@@ -152,7 +181,8 @@ func (user *User)Signin() {
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	log.Println(string(body))
+	return string(body)
 }
 
 func (users *Users) Acc_main(update tgbotapi.Update) {
@@ -195,6 +225,18 @@ func (users *Users) Acc_main(update tgbotapi.Update) {
 				acc.State = 3.0
 				str := "請輸入兌換碼"
 				bot_func.TGBot.SendMessage(int64(user.ID), str)
+			} else if Instruction(text) == devsignin && user.ID == devID {
+				for i := range users.Users {
+					user := users.Users[i]
+					str := user.FirstName + ": " + user.Signin()
+					bot_func.TGBot.SendMessage(int64(devID), str)
+				}
+			} else if Instruction(text) == devstate && user.ID == devID {
+				for i := range users.Users {
+					user := users.Users[i]
+					str := fmt.Sprintf("%s %.1f", user.FirstName, user.State)
+					bot_func.TGBot.SendMessage(int64(devID), str)
+				}
 			} else {
 				acc.Help(chatID)
 			}
@@ -207,7 +249,7 @@ func (users *Users) Acc_main(update tgbotapi.Update) {
 		Save()
 	} else if acc.State == 3.0 {
 		fmt.Println("state 3")
-		users.Gift(text)
+		users.Gift(text, user)
 		acc.State = 1.0
 	}
 }

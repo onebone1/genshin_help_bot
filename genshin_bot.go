@@ -3,18 +3,25 @@ package main
 import (
 	"time"
 
-	"github.com/roylee0704/gron"
-
 	"genshin/account"
 	"genshin/bot_func"
 )
 
+func Signin_crontab() {
+  for true {
+    hour := time.Now().Hour()
+    min := time.Now().Minute()
+    if hour == 0 && min == 0 {
+      account.Accs.Signin()
+      time.Sleep(23*time.Hour)
+    }
+  }
+}
+
 func main() {
 	account.Accs.Init()
 	_, updates := bot_func.Bot_init()
-	cron := gron.New()
-	cron.AddFunc(gron.Every(1*time.Hour), account.Accs.Signin)
-	cron.Start()
+  go Signin_crontab()
 
 	for update := range updates {
 		if update.Message != nil && !update.Message.From.IsBot {
