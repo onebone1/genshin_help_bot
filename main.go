@@ -3,8 +3,8 @@ package main
 import (
 	"time"
 
-	"genshin/account"
-	"genshin/bot_func"
+	"genshin_help_bot/account"
+	"genshin_help_bot/bot_func"
 )
 
 func Signin_crontab() {

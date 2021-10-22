@@ -14,7 +14,7 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
 
-	"genshin/bot_func"
+	"genshin_help_bot/bot_func"
 )
 
 type Users struct {
@@ -173,7 +173,7 @@ func (user *User) Signin() string {
 
 	req.AddCookie(&http.Cookie{Name: "account_id", Value: user.Account_id})
 	req.AddCookie(&http.Cookie{Name: "cookie_token", Value: user.Cookie_token})
-
+	log.Println("\n", req, "\n")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -191,6 +191,7 @@ func (users *Users) Acc_main(update tgbotapi.Update) {
 	chatID := update.Message.Chat.ID
 	var acc *User
 	for i := range users.Users {
+		fmt.Println("index", i, "\n")
 		if Accs.Users[i].ID == user.ID {
 			acc = Accs.Users[i]
 			break
@@ -213,6 +214,7 @@ func (users *Users) Acc_main(update tgbotapi.Update) {
 		bot_func.TGBot.SendMessage(int64(user.ID), str)
 	} else if acc.State == 1.0 {
 		if string(text[0]) == "/" {
+			fmt.Println(Instruction(text))
 			if Instruction(text) == my_info {
 				acc.Check()
 			} else if Instruction(text) == change_info {
