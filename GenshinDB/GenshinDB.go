@@ -7,13 +7,18 @@ import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/joho/godotenv"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
+  "github.com/joho/godotenv"
 
-	"genshin_help_bot/account"
+	//"genshin_help_bot/account"
 )
 
-func Init()(DB *sql.DB) {
-	_ = godotenv.Load()
+type Users struct {
+  DB *sql.DB
+}
+
+func Init()(DB *sql.DB){
+	_ = godotenv.Load(".test.env")
 	UserName := os.Getenv("DB_user")
 	Password := os.Getenv("DB_pass")
 	Host := os.Getenv("DB_host")
@@ -24,25 +29,14 @@ func Init()(DB *sql.DB) {
 	if err != nil {
 		fmt.Println("connection to mysql failed:", err)
 		return
-	}
+  }
 	return DB
 }
 
-func AddUser(DB *sql.DB, user account.User) {
-	ID := user.ID
-	FirstName := user.FirstName
-	LastName := user.LastName
-	UID := user.Uid
-	Account_id := user.Account_id
-	Cookie_token := user.Cookie_token
-	State := user.State
-
-	str := fmt.Sprintf("INSERT INTO user VALUES(%d,'%s','%s',%s,%s,'%s',%f)", ID, FirstName, LastName, UID, Account_id, Cookie_token, State)
-	insert, err := DB.Query(str)
-	if err != nil {
-		log.Println("Insert error:", err)
-	}
-	insert.Close()
+func (users Users)AddUser(table string, update tgbotapi.Update) {
+  user := update.Message.From
+  values := fmt.Sprintf("(%d,'%s','%s')", user.ID, user.FirstName, user.LastName)
+  Insert(users.DB, table, "(ID,First_name,Last_name)", values)
 }
 
 func FindUser(DB *sql.DB, cols string, conditions string)(Rows *sql.Rows) {
@@ -50,6 +44,7 @@ func FindUser(DB *sql.DB, cols string, conditions string)(Rows *sql.Rows) {
 	if conditions != "" {
 		str = str + fmt.Sprintf(" WHERE %s", conditions)
 	}
+  log.Println("Query", str)
 	query, err := DB.Query(str + ";")
 	if err != nil {
 		log.Println("Select error:", err)
@@ -57,8 +52,8 @@ func FindUser(DB *sql.DB, cols string, conditions string)(Rows *sql.Rows) {
   return query
 }
 
-func UpdateUser(DB *sql.DB, table string, col string, value string, condition string) {
-  str := fmt.Sprintf("UPDATE %s SET %s=%s WHERE %s;", table, col, value, condition)
+func UpdateUser(DB *sql.DB, table string, key_values string, condition string) {
+  str := fmt.Sprintf("UPDATE %s SET %s WHERE %s;", table, key_values, condition)
   update, err := DB.Query(str)
   if err != nil {
     log.Println("Update error:", err)
