@@ -8,7 +8,8 @@ import (
 )
 
 func Insert(DB *sql.DB, table string, cols string, values string) {
-  str := fmt.Sprintf("INSERT INTO %s %s VALUES%s;", table, cols, values)
+  str := fmt.Sprintf("INSERT INTO %s (%s) VALUES%s;", table, cols, values)
+  log.Println(str, "\n")
   Insert, err := DB.Query(str)
   if err != nil {
     log.Println("Insert error:", err)

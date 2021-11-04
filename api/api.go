@@ -1,9 +1,9 @@
 package api
 
 import (
-  "fmt"
+  // "fmt"
   "os"
-  "log"
+  // "log"
   "database/sql"
   _ "github.com/go-sql-driver/mysql"
 
@@ -47,23 +47,6 @@ func Instruction(text string) int {
   return 0
 }
 
-func (uDB UserDB)if_exist(ID int)(b bool) {
-  condition := fmt.Sprintf("ID=%d", ID)
-  rows := GenshinDB.FindUser(uDB.DB, "ID", condition)
-  count := 0
-  for rows.Next() {
-    count += 1
-  }
-  if count == 0 {
-    log.Println("User not found!")
-  }else if count > 1 {
-    log.Println("Multiple user found!")
-  }else {
-    return true
-  }
-  return false
-}
-
 /*
 func (uDB UserDB)get_state(ID int)(state float64) {
   rows := GenshinDB.FindUser(uDB.DB, "State", "ID="+string(ID))
@@ -80,6 +63,7 @@ func (uDB UserDB)Main_API(update tgbotapi.Update) {
   //chatID := update.Message.Chat.ID
   if !uDB.if_exist(user.ID) {
     bot_func.TGBot.SendMessage(int64(user.ID), "First use")
+    uDB.add_user(update)
     return
   }
   state := uDB.get_state(user.ID)
