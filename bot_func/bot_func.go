@@ -12,6 +12,7 @@ import (
 type TeleBot struct {
 	BotAPI *tgbotapi.BotAPI
 }
+
 var TGBot TeleBot
 
 var Category string
@@ -25,7 +26,7 @@ var Bot_info struct {
 }
 
 func Bot_init() (bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
-	err := godotenv.Load()
+	err := godotenv.Load(".test.env")
 	if err != nil {
 		log.Fatal(err)
 	}
